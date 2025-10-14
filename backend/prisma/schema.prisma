@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(uuid())
+  email          String           @unique
+  password       String
+  name           String
+  role           Role             @default(EMPLOYEE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  employee       Employee?
+  notifications  Notification[]
+  ScreenedResume ScreenedResume[]
+
+  jobApplications JobApplication[]
+}
+
+enum Role {
+  ADMIN
+  HR
+  MANAGER
+  EMPLOYEE
+  CANDIDATE
+}
+
+model Employee {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department   String
+  position     String
+  salary       Decimal       @db.Decimal(10, 2)
+  joinDate     DateTime
+  attendances  Attendance[]
+  payrolls     Payroll[]
+  performances Performance[]
+  leaves       Leave[]
+}
+
+model Attendance {
+  id         String    @id @default(uuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime  @default(now())
+  status     String
+  checkIn    DateTime?
+  checkOut   DateTime?
+}
+
+model Payroll {
+  id         String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month      String
+  baseSalary Decimal  @db.Decimal(10, 2)
+  bonus      Decimal  @default(0) @db.Decimal(10, 2)
+  deductions Decimal  @default(0) @db.Decimal(10, 2)
+  total      Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+}
+
+model Performance {
+  id         String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  review     String
+  rating     Int
+  reviewDate DateTime @default(now())
+}
+
+model Leave {
+  id         String    @id @default(uuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  startDate  DateTime
+  endDate    DateTime
+  type       String
+  status     String    @default("Pending")
+  reason     String?
+  appliedAt  DateTime  @default(now())
+  reviewedAt DateTime?
+  reviewerId String?
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ScreenedResume {
+  id             String   @id @default(uuid())
+  candidateName  String?
+  resumeText     String
+  jobDescription String
+  aiLabel        String // Best-matching label: Excellent Match, Potential Fit, etc.
+  aiScores       Json // Probabilities or score object from AI classification
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  reviewedById   String? // (Optional) User id who reviewed/saved this result
+  reviewedBy     User?    @relation(fields: [reviewedById], references: [id])
+}
+
+model GeminiConversation {
+  id          String   @id @default(uuid())
+  userId      String?
+  chatHistory Json // Stores full conversation history as JSON
+  response    String // Latest AI assistant reply
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GeminiTranscription {
+  id         String   @id @default(uuid())
+  userId     String?
+  audioMeta  Json?
+  transcript String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model VoiceInterview {
+  id          String   @id @default(uuid())
+  candidateId String
+  jobId       String
+  question    String
+  transcript  String
+  followup    String
+  sentiment   String
+  // Add this line if missing:
+  score       String?    // <-- Add this to support scoring
+  createdAt   DateTime @default(now())
+}
+
+
+model Job {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  location    String // optional
+  department  String // optional
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id          String   @id @default(uuid())
+  jobId       String
+  candidateId String
+  status      String // 'APPLIED', 'UNDER_REVIEW', 'REJECTED', 'SELECTED'…
+  resumeUrl   String? // optional
+  createdAt   DateTime @default(now())
+
+  job       Job  @relation(fields: [jobId], references: [id])
+  candidate User @relation(fields: [candidateId], references: [id])
+}
