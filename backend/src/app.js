@@ -29,6 +29,12 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  credentials: true,
+}));
+
+
 // Request Logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
