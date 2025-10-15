@@ -226,4 +226,3 @@ const AdminResumesPage = () => {
 };
 
 export default AdminResumesPage;
-ww1w1w1w1
